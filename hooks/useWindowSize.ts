@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
+import useIsomorphicEffect from "../../../useIsomorphicEffect";
 
 function useWindowSize() {
   const [windowSize, setWindowSize] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: 0,
+    height: 0,
   });
 
-  useEffect(() => {
+  useIsomorphicEffect(() => {
+    setWindowSize({ width: window.innerWidth, height: window.innerHeight });
     function handleResize() {
       setWindowSize({
         width: window.innerWidth,
@@ -14,13 +16,13 @@ function useWindowSize() {
       });
     }
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
     handleResize(); // 初始化时获取窗口大小
 
-    return () => window.removeEventListener('resize', handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   return windowSize;
 }
 
-export default useWindowSize; 
+export default useWindowSize;
