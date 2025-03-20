@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import useIsomorphicEffect from "../../../useIsomorphicEffect";
+import useIsomorphicEffect from "../useIsomorphicEffect";
 
 function useWindowSize() {
   const [windowSize, setWindowSize] = useState({
