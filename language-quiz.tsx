@@ -21,27 +21,28 @@ export default function LanguageQuiz() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const currentQuestionRef = useLatest(currentQuestion);
   const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
+  const selectedOptionsRef = useLatest(selectedOptions);
   const [showConfetti, setShowConfetti] = useState(false);
   const { width, height } = useWindowSize();
   const goodRef = useRef<HTMLHeadingElement>(null);
   const [isLocked, setIsLocked] = useState(false);
 
   const [stopSignal, setStopSignal] = useState(false);
-  const stopSignalRef = useLatest(stopSignal);
   useEffect(() => {
     if (timeLeft <= 0) return;
-
+    console.log("dxz stopSignal", stopSignal);
+    if (stopSignal) return;
     const timer = setTimeout(() => {
       if (
-        currentQuestionRef.current < words.length - 1 &&
-        !stopSignalRef.current
+        currentQuestionRef.current <= words.length - 1 &&
+        selectedOptionsRef.current.length < words.length
       ) {
         setTimeLeft(timeLeft - 1);
       }
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [timeLeft]);
+  }, [timeLeft, stopSignal]);
 
   const progressPercentage = (selectedOptions.length / words.length) * 100;
   const timerPercentage = (timeLeft / totalTime) * 100;
