@@ -1,0 +1,41 @@
+import type React from "react"
+import "@/app/globals.css"
+import { Inter } from "next/font/google"
+import { Poppins } from "next/font/google"
+import { ThemeProvider } from "@/components/theme-provider"
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+})
+
+const poppins = Poppins({
+  weight: ["600", "700"],
+  subsets: ["latin"],
+  variable: "--font-heading",
+})
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <head />
+      <body className={`${inter.variable} ${poppins.variable} font-sans`}>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
+  )
+}
+
+
+
+import './globals.css'
+
+export const metadata = {
+      generator: 'v0.dev'
+    };

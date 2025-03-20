@@ -1,0 +1,47 @@
+.countdown {
+    animation: countdown-animation 10s linear infinite;
+}
+
+@keyframes countdown-animation {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg); /* 顺时针 */
+    }
+}
+
+.good-text {
+    font-size: 2rem; /* 调整字体大小 */
+}
+
+.progress-bar {
+    transition: width 0.5s ease-in-out; /* 添加动画 */
+}
+
+.option {
+    width: 100%; /* 让选项宽度铺满 */
+    box-sizing: border-box; /* 确保 padding 和 border 不影响宽度 */
+    /* 其他样式 */
+}
+
+.option.selected {
+    background-color: #f0f0f0; /* 选中态样式 */
+}
+
+.confetti {
+    animation: confetti-animation 0.5s ease-out;
+    position: relative;
+    display: inline-block;
+}
+
+@keyframes confetti-animation {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-20px); opacity: 0; }
+}
+
+.container {
+    width: 100%; /* 让外层容器宽度铺满 */
+    box-sizing: border-box; /* 确保 padding 和 border 不影响宽度 */
+    /* 其他样式 */
+} 
