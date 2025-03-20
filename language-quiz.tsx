@@ -14,6 +14,40 @@ const words = [
   { word: "Average", options: ["好的", "坏的", "一般的; 中等的"], correct: 2 },
 ];
 
+const CircularProgress = ({
+  noAnimate,
+  timerPercentage,
+}: {
+  noAnimate?: boolean;
+  timerPercentage: number;
+}) => (
+  <svg className="w-14 h-14" viewBox="0 0 100 100">
+    <circle
+      cx="50"
+      cy="50"
+      r="45"
+      fill="none"
+      stroke="#eaeaea"
+      strokeWidth="4"
+    />
+    <circle
+      cx="50"
+      cy="50"
+      r="45"
+      fill="none"
+      stroke="#3b82f6"
+      strokeWidth="4"
+      strokeDasharray="283"
+      strokeDashoffset={283 - (283 * timerPercentage) / 100}
+      strokeLinecap="round"
+      transform="rotate(-90 50 50)"
+      style={{
+        transition: noAnimate ? "none" : "stroke-dashoffset 1s linear",
+      }}
+    />
+  </svg>
+);
+
 export default function LanguageQuiz() {
   const BaseTimeLeft = 15;
   const [timeLeft, setTimeLeft] = useState(BaseTimeLeft);
@@ -26,19 +60,26 @@ export default function LanguageQuiz() {
   const { width, height } = useWindowSize();
   const goodRef = useRef<HTMLHeadingElement>(null);
   const [isLocked, setIsLocked] = useState(false);
+  const [fade, setFade] = useState(false);
 
   const [stopSignal, setStopSignal] = useState(false);
+
   useEffect(() => {
+    console.log("dxz stopSignal", stopSignal, timeLeft);
     if (timeLeft <= 0) return;
-    console.log("dxz stopSignal", stopSignal);
+
     if (stopSignal) return;
-    const timer = setTimeout(() => {
+
+    const callback = () => {
       if (
         currentQuestionRef.current <= words.length - 1 &&
         selectedOptionsRef.current.length < words.length
       ) {
         setTimeLeft(timeLeft - 1);
       }
+    };
+    const timer = setTimeout(() => {
+      callback();
     }, 1000);
 
     return () => clearTimeout(timer);
@@ -47,30 +88,38 @@ export default function LanguageQuiz() {
   const progressPercentage = (selectedOptions.length / words.length) * 100;
   const timerPercentage = (timeLeft / totalTime) * 100;
   const handleOptionClick = (index: number) => {
-    if (isLocked) return; // 如果选项已锁定，则不执行任何操作
+    if (isLocked) return;
 
     setSelectedOptions([...selectedOptions, index]);
-    setIsLocked(true); // 锁定选项
-
+    setIsLocked(true);
     setStopSignal(true);
+    if (currentQuestion < words.length - 1) {
+      setFade(true);
+    }
+
     setTimeout(() => {
       setStopSignal(false);
-
       if (currentQuestion < words.length - 1) {
+        setFade(false);
         setTimeLeft(BaseTimeLeft);
         setCurrentQuestion(currentQuestion + 1);
       } else {
         setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 3000); // 撒花特效持续3秒
+        setTimeout(() => setShowConfetti(false), 3000);
       }
-      setIsLocked(false); // 解锁选项
-    }, 500); // 0.5秒后切换到下一个单词
+      setIsLocked(false);
+    }, 500);
   };
 
   const handleRestart = () => {
     setCurrentQuestion(0);
     setSelectedOptions([]);
     setTimeLeft(totalTime);
+
+    setStopSignal(true);
+    setTimeout(() => {
+      setStopSignal(false);
+    }, 500);
   };
 
   const confettiSource = goodRef.current
@@ -97,38 +146,33 @@ export default function LanguageQuiz() {
           当前进度 {selectedOptions.length}/{words.length}
         </span>
       </div>
-      <div className="max-w-md mx-auto p-4 flex flex-col gap-6 mt-8">
+      <div
+        className={`max-w-md mx-auto p-4 flex flex-col gap-6 mt-8 transition-opacity duration-500 ${
+          fade ? "opacity-0 delay-200" : "opacity-100"
+        }`}
+      >
         <Card className="p-8 flex flex-col items-center gap-6 border-0 shadow-none">
           <h2
             ref={goodRef}
-            className="text-4xl font-bold font-heading tracking-tight"
+            className={`text-4xl font-bold font-heading tracking-tight`}
           >
             {words[currentQuestion].word}
           </h2>
 
           <div className="relative">
-            <svg className="w-14 h-14" viewBox="0 0 100 100">
-              <circle
-                cx="50"
-                cy="50"
-                r="45"
-                fill="none"
-                stroke="#eaeaea"
-                strokeWidth="4"
+            {stopSignal ? (
+              <CircularProgress
+                key={words[currentQuestion].word + "a"}
+                noAnimate
+                timerPercentage={timerPercentage}
               />
-              <circle
-                cx="50"
-                cy="50"
-                r="45"
-                fill="none"
-                stroke="#3b82f6"
-                strokeWidth="4"
-                strokeDasharray="283"
-                strokeDashoffset={283 - (283 * timerPercentage) / 100}
-                strokeLinecap="round"
-                transform="rotate(-90 50 50)"
+            ) : (
+              <CircularProgress
+                key={words[currentQuestion].word + "b"}
+                timerPercentage={timerPercentage}
               />
-            </svg>
+            )}
+
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-primary text-base">{timeLeft}s</span>
             </div>
@@ -188,9 +232,16 @@ export default function LanguageQuiz() {
               </div>
             </div>
           ))}
-          <Button onClick={handleRestart} className="w-full rounded-xl mt-4">
-            重新开始
-          </Button>
+          {!showConfetti &&
+            selectedOptions.length === words.length &&
+            !stopSignal && (
+              <Button
+                onClick={handleRestart}
+                className="w-full rounded-xl mt-4"
+              >
+                重新开始
+              </Button>
+            )}
         </div>
       )}
     </>
