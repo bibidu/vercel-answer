@@ -15,10 +15,11 @@ const words = [
 ];
 
 export default function LanguageQuiz() {
-  const BaseTimeLeft = 15
+  const BaseTimeLeft = 15;
   const [timeLeft, setTimeLeft] = useState(BaseTimeLeft);
   const totalTime = 15;
   const [currentQuestion, setCurrentQuestion] = useState(0);
+  const currentQuestionRef = useLatest(currentQuestion);
   const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
   const { width, height } = useWindowSize();
@@ -26,12 +27,17 @@ export default function LanguageQuiz() {
   const [isLocked, setIsLocked] = useState(false);
 
   const [stopSignal, setStopSignal] = useState(false);
-  const stopSignalRef = useLatest(stopSignal)
+  const stopSignalRef = useLatest(stopSignal);
   useEffect(() => {
     if (timeLeft <= 0) return;
 
     const timer = setTimeout(() => {
-      !stopSignalRef.current && setTimeLeft(timeLeft - 1);
+      if (
+        currentQuestionRef.current < words.length - 1 &&
+        !stopSignalRef.current
+      ) {
+        setTimeLeft(timeLeft - 1);
+      }
     }, 1000);
 
     return () => clearTimeout(timer);
@@ -50,7 +56,7 @@ export default function LanguageQuiz() {
       setStopSignal(false);
 
       if (currentQuestion < words.length - 1) {
-        setTimeLeft(BaseTimeLeft)
+        setTimeLeft(BaseTimeLeft);
         setCurrentQuestion(currentQuestion + 1);
       } else {
         setShowConfetti(true);
