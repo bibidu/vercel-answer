@@ -6,12 +6,26 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import Confetti from "react-confetti";
 import useWindowSize from "@/hooks/useWindowSize";
-import useLatest from "./useLatest";
+import useLatest from "../../hooks/useLatest";
+import Link from "next/link";
+import { SettingsData, defaultSettings } from "@/app/settings/page";
 
 const words = [
-  { word: "Good", options: ["好的; 棒的", "坏的", "一般的", "优秀的"], correct: 0 },
-  { word: "Bad", options: ["好的", "坏的; 糟糕的", "一般的", "可怕的"], correct: 1 },
-  { word: "Average", options: ["好的", "坏的", "一般的; 中等的", "普通的"], correct: 2 },
+  {
+    word: "Good",
+    options: ["好的; 棒的", "坏的", "一般的", "优秀的"],
+    correct: 0,
+  },
+  {
+    word: "Bad",
+    options: ["好的", "坏的; 糟糕的", "一般的", "可怕的"],
+    correct: 1,
+  },
+  {
+    word: "Average",
+    options: ["好的", "坏的", "一般的; 中等的", "普通的"],
+    correct: 2,
+  },
 ];
 
 const CircularProgress = ({
@@ -50,10 +64,8 @@ const CircularProgress = ({
   </svg>
 );
 
-export default function LanguageQuiz() {
-  const BaseTimeLeft = 15;
-  const [timeLeft, setTimeLeft] = useState(BaseTimeLeft);
-  const totalTime = 15;
+export default function AnswerPage() {
+  const [timeLeft, setTimeLeft] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const currentQuestionRef = useLatest(currentQuestion);
   const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
@@ -67,10 +79,37 @@ export default function LanguageQuiz() {
   const [stopSignal, setStopSignal] = useState(false);
   const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
 
-  useEffect(() => {
-    console.log("dxz stopSignal", stopSignal, timeLeft);
-    if (timeLeft <= 0) return;
+  // 从缓存读取 setting并useState暂存
 
+  const [settings, setSettings] = useState<SettingsData>(defaultSettings);
+  const settingsRef = useLatest(settings);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+
+  useEffect(() => {
+    const loadSettings = () => {
+      try {
+        const savedSettings = localStorage.getItem("settings");
+        if (savedSettings) {
+          const parsedSettings = JSON.parse(savedSettings);
+          setSettings(parsedSettings);
+          setTimeLeft(parsedSettings.timerDuration);
+        }
+      } catch (error) {
+        console.error("Failed to load settings from localStorage:", error);
+      }
+      setSettingsLoaded(true);
+    };
+
+    loadSettings();
+  }, []);
+  useEffect(() => {
+    if (!settingsRef.current.showTimer) return;
+    if (timeLeft <= 0) {
+      if (settingsRef.current.autoSwitch) {
+        handleOptionClick(-1);
+      }
+      return;
+    }
     if (stopSignal) return;
 
     const callback = () => {
@@ -89,9 +128,10 @@ export default function LanguageQuiz() {
   }, [timeLeft, stopSignal]);
 
   const progressPercentage = (selectedOptions.length / words.length) * 100;
-  const timerPercentage = (timeLeft / totalTime) * 100;
+  const timerPercentage = (timeLeft / settings.timerDuration) * 100;
   const handleOptionClick = (index: number) => {
     if (isLocked) return;
+    if (selectedOptions.length === words.length) return;
 
     setSelectedOptions([...selectedOptions, index]);
     setIsLocked(true);
@@ -104,24 +144,13 @@ export default function LanguageQuiz() {
       setStopSignal(false);
       if (currentQuestion < words.length - 1) {
         setFade(false);
-        setTimeLeft(BaseTimeLeft);
+        setTimeLeft(settings.timerDuration);
         setCurrentQuestion(currentQuestion + 1);
       } else {
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 3000);
       }
       setIsLocked(false);
-    }, 500);
-  };
-
-  const handleRestart = () => {
-    setCurrentQuestion(0);
-    setSelectedOptions([]);
-    setTimeLeft(totalTime);
-    setStopSignal(true);
-    setIsActionSheetOpen(false);
-    setTimeout(() => {
-      setStopSignal(false);
     }, 500);
   };
 
@@ -138,21 +167,31 @@ export default function LanguageQuiz() {
       }
     : undefined;
 
+  const finished = selectedOptions.length === words.length;
+
+  if (!settingsLoaded) {
+    return <div className="w-full h-screen flex justify-center items-center">Loading...</div>;
+  }
+
   return (
     <>
-      <div className="w-full fixed top-0 left-0 px-4 py-2">
-        <Progress
-          value={progressPercentage}
-          className="h-2 transition-all duration-500 ease-in-out rounded-full"
-        />
-        <span className="text-sm text-muted-foreground whitespace-nowrap">
-          当前进度 {selectedOptions.length}/{words.length}
-        </span>
-      </div>
+      {settings.showProgress && (
+        <div className="w-full fixed top-0 left-0 px-4 py-2">
+          <Progress
+            value={progressPercentage}
+            className="h-2 transition-all duration-500 ease-in-out rounded-full"
+          />
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
+            当前进度 {selectedOptions.length}/{words.length}
+          </span>
+        </div>
+      )}
       <div
-        className={`max-w-md mx-auto p-4 flex flex-col gap-6 mt-8 transition-opacity duration-500 ${fade ? 'opacity-0 delay-500' : 'opacity-100'}`}
+        className={`mx-auto p-10 flex flex-col gap-6 absolute top-[50%] translate-y-[-50%] transition-opacity duration-500 ${
+          fade ? "opacity-0 delay-500" : "opacity-100"
+        }`}
       >
-        <Card className="p-8 flex flex-col items-center gap-6 border-0 shadow-none">
+        <Card className="flex flex-col items-center gap-6 border-0 shadow-none">
           <h2
             ref={goodRef}
             className={`text-4xl font-bold font-heading tracking-tight`}
@@ -160,25 +199,28 @@ export default function LanguageQuiz() {
             {words[currentQuestion].word}
           </h2>
 
-          <div className="relative">
-            {stopSignal ? (
-              <CircularProgress
-                key={words[currentQuestion].word + "a"}
-                noAnimate
-                timerPercentage={timerPercentage}
-              />
-            ) : (
-              <CircularProgress
-                key={words[currentQuestion].word + "b"}
-                timerPercentage={timerPercentage}
-                strokeColor="#000000"
-              />
-            )}
+          {settings.showTimer && (
+            <div className="relative">
+              {stopSignal ? (
+                <CircularProgress
+                  key={words[currentQuestion].word + "a"}
+                  noAnimate
+                  timerPercentage={timerPercentage}
+                  strokeColor="#000000"
+                />
+              ) : (
+                <CircularProgress
+                  key={words[currentQuestion].word + "b"}
+                  timerPercentage={timerPercentage}
+                  strokeColor="#000000"
+                />
+              )}
 
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-black text-base">{timeLeft}s</span>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-black text-base">{timeLeft}s</span>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="w-full space-y-3 mt-4">
             {words[currentQuestion].options.map((option, index) => (
@@ -187,8 +229,11 @@ export default function LanguageQuiz() {
                 label={String.fromCharCode(65 + index)}
                 text={option}
                 onClick={() => handleOptionClick(index)}
-                isSelected={selectedOptions[currentQuestion] === index}
-                isLocked={isLocked}
+                isLocked={finished || isLocked}
+                correctIndex={words[currentQuestion].correct}
+                currentIndex={index}
+                useSelectedIndex={selectedOptions[currentQuestion]}
+                respondInRealTime={settings.respondInRealTime}
               />
             ))}
           </div>
@@ -206,7 +251,7 @@ export default function LanguageQuiz() {
         </Card>
       </div>
 
-      {selectedOptions.length === words.length && (
+      {finished && (
         <div className="fixed bottom-0 left-0 w-full p-4 bg-white">
           <Button
             onClick={() => setIsActionSheetOpen(true)}
@@ -218,8 +263,14 @@ export default function LanguageQuiz() {
       )}
 
       {isActionSheetOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" onClick={() => setIsActionSheetOpen(false)}>
-          <div className="bg-white rounded-lg p-4 w-11/12 max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+          onClick={() => setIsActionSheetOpen(false)}
+        >
+          <div
+            className="bg-white rounded-lg p-4 w-11/12 max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-xl font-bold">结果</h3>
             {words.map((word, index) => (
               <div key={index} className="mt-2">
@@ -238,7 +289,9 @@ export default function LanguageQuiz() {
                   {word.options.map((option, i) => (
                     <span
                       key={i}
-                      className={i === selectedOptions[index] ? "font-bold" : ""}
+                      className={
+                        i === selectedOptions[index] ? "font-bold" : ""
+                      }
                     >
                       {String.fromCharCode(65 + i)}. {option}{" "}
                     </span>
@@ -246,12 +299,9 @@ export default function LanguageQuiz() {
                 </div>
               </div>
             ))}
-            <Button
-              onClick={handleRestart}
-              className="w-full rounded-xl mt-4"
-            >
-              重新开始
-            </Button>
+            <Link href="/">
+              <Button className="w-full rounded-xl mt-4">返回首页</Button>
+            </Link>
           </div>
         </div>
       )}
@@ -263,21 +313,40 @@ function OptionButton({
   label,
   text,
   onClick,
-  isSelected,
   isLocked,
+  respondInRealTime,
+
+  useSelectedIndex,
+  correctIndex,
+  currentIndex,
 }: {
   label: string;
   text: string;
   onClick: () => void;
-  isSelected: boolean;
   isLocked: boolean;
+  respondInRealTime: boolean;
+  useSelectedIndex: number;
+  correctIndex: number;
+  currentIndex: number;
 }) {
+  let borderClass = "";
+  if (respondInRealTime && useSelectedIndex !== undefined) {
+    const isCurrentOptionCorrect = correctIndex === currentIndex;
+    const isUserSelectCurrent = useSelectedIndex === currentIndex;
+
+    if (isUserSelectCurrent) {
+      borderClass = isCurrentOptionCorrect
+        ? "border-green-500"
+        : "border-red-500";
+    } else {
+      borderClass = isCurrentOptionCorrect ? "border-green-500" : "";
+    }
+  }
+
   return (
     <Button
       variant="outline"
-      className={`w-full justify-start h-auto py-4 px-4 font-normal text-base rounded-xl ${
-        isSelected ? "bg-black text-white" : ""
-      } font-heading`}
+      className={`w-full justify-start h-auto py-4 px-4 font-normal text-base rounded-xl ${borderClass} border-2 font-heading`}
       onClick={isLocked ? undefined : onClick}
       disabled={isLocked}
     >

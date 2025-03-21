@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import useLatest from './useLatest';
+import useLatest from './hooks/useLatest';
 
 function ExampleComponent() {
   const [count, setCount] = React.useState(0);

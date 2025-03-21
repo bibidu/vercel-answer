@@ -1,11 +1,12 @@
 "use client"
 
-import LanguageQuiz from "../language-quiz.tsx"
+import Dashboard from './dashboard/page';
+import Link from 'next/link';
 
 export default function Page() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center">
-      <LanguageQuiz />
+      <Dashboard />
     </main>
   )
 }
